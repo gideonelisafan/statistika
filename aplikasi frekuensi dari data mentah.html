@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabel Distribusi Frekuensi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Warna latar belakang abu-abu muda */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg w-full max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Tabel Distribusi Frekuensi</h1>
+
+        <div class="mb-6 border border-gray-200 rounded-lg p-4">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Masukkan Data Mentah (Angka dipisahkan spasi atau baris baru)</h2>
+            <textarea id="raw-data-input" rows="4" placeholder="Contoh: 70 75 80 65 90 85 72 78 68 92 88 73 76 81 69 83 71 79 86 91"
+                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"></textarea>
+            <p class="text-sm text-gray-500 mt-2">Jika Anda memasukkan data mentah di sini, input Kelas dan Frekuensi di bawah akan diabaikan.</p>
+        </div>
+
+        <div id="manual-input-container" class="mb-6 border border-gray-200 rounded-lg p-4">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Atau Masukkan Data Manual (Kelas dan Frekuensi)</h2>
+            <div id="data-rows">
+                </div>
+            <button id="add-row-btn" class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200 ease-in-out shadow-md">
+                Tambah Baris Data Manual
+            </button>
+        </div>
+
+        <button id="calculate-btn" class="w-full px-6 py-3 bg-green-600 text-white text-lg font-semibold rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200 ease-in-out shadow-md mb-6">
+            Hitung Tabel Distribusi
+        </button>
+
+        <div id="message-box" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <span id="message-text" class="block sm:inline"></span>
+            <span class="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer" onclick="document.getElementById('message-box').classList.add('hidden')">
+                <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.697l-2.651 2.652a1.2 1.2 0 1 1-1.697-1.697L8.303 10 5.651 7.348a1.2 1.2 0 1 1 1.697-1.697L10 8.303l2.651-2.652a1.2 1.2 0 1 1 1.697 1.697L11.697 10l2.651 2.651a1.2 1.2 0 0 1 0 1.698z"/></svg>
+            </span>
+        </div>
+
+        <div id="raw-data-stats" class="hidden bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
+            <h3 class="text-lg font-semibold text-blue-800 mb-2">Statistik Data Mentah:</h3>
+            <p><strong class="text-blue-700">Jumlah Data (n):</strong> <span id="stat-n"></span></p>
+            <p><strong class="text-blue-700">Nilai Minimum:</strong> <span id="stat-min"></span></p>
+            <p><strong class="text-blue-700">Nilai Maksimum:</strong> <span id="stat-max"></span></p>
+            <p><strong class="text-blue-700">Jangkauan (Range):</strong> <span id="stat-range"></span></p>
+            <p><strong class="text-blue-700">Jumlah Kelas (k):</strong> <span id="stat-k"></span></p>
+            <p><strong class="text-blue-700">Panjang Kelas (c):</strong> <span id="stat-c"></span></p>
+        </div>
+
+        <div id="results-container" class="hidden overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+            <h2 class="text-xl font-semibold text-gray-700 p-4 bg-gray-50 rounded-t-lg">Hasil Perhitungan</h2>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frekuensi</th>
+                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nilai Tengah</th>
+                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tepi Bawah</th>
+                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tepi Atas</th>
+                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fk &le;</th>
+                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fk &ge;</th>
+                    </tr>
+                </thead>
+                <tbody id="results-table-body" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const rawDataInput = document.getElementById('raw-data-input');
+        const manualInputContainer = document.getElementById('manual-input-container');
+        const dataRowsContainer = document.getElementById('data-rows');
+        const addRowBtn = document.getElementById('add-row-btn');
+        const calculateBtn = document.getElementById('calculate-btn');
+        const resultsContainer = document.getElementById('results-container');
+        const resultsTableBody = document.getElementById('results-table-body');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const rawDataStats = document.getElementById('raw-data-stats');
+        const statN = document.getElementById('stat-n');
+        const statMin = document.getElementById('stat-min');
+        const statMax = document.getElementById('stat-max');
+        const statRange = document.getElementById('stat-range');
+        const statK = document.getElementById('stat-k');
+        const statC = document.getElementById('stat-c');
+
+
+        // Function to show messages
+        function showMessage(message, type = 'error') {
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+            if (type === 'error') {
+                messageBox.classList.remove('bg-green-100', 'border-green-400', 'text-green-700');
+                messageBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+            } else { // info or success
+                messageBox.classList.remove('bg-red-100', 'border-red-400', 'text-red-700');
+                messageBox.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+            }
+        }
+
+        // Function to hide messages
+        function hideMessage() {
+            messageBox.classList.add('hidden');
+        }
+
+        // Function to add a new data input row for manual input
+        function addDataRow() {
+            const rowDiv = document.createElement('div');
+            rowDiv.classList.add('flex', 'flex-col', 'md:flex-row', 'gap-3', 'mb-3');
+
+            rowDiv.innerHTML = `
+                <input type="text" placeholder="Kelas (contoh: 10-19)" class="class-input flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                <input type="number" placeholder="Frekuensi" class="frequency-input flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out min-w-0">
+                <button class="remove-row-btn px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 transition duration-150 ease-in-out shadow-sm">Hapus</button>
+            `;
+            dataRowsContainer.appendChild(rowDiv);
+
+            // Add event listener to the new remove button
+            rowDiv.querySelector('.remove-row-btn').addEventListener('click', () => {
+                rowDiv.remove();
+            });
+        }
+
+        // Add initial manual input rows
+        for (let i = 0; i < 3; i++) {
+            addDataRow();
+        }
+
+        // Event listener for adding manual rows
+        addRowBtn.addEventListener('click', addDataRow);
+
+        // Main calculation logic
+        calculateBtn.addEventListener('click', () => {
+            hideMessage(); // Clear previous messages
+            resultsTableBody.innerHTML = ''; // Clear previous results
+            resultsContainer.classList.add('hidden'); // Hide results container initially
+            rawDataStats.classList.add('hidden'); // Hide raw data stats initially
+
+            let processedData = []; // This will hold {classStr, lowerBound, upperBound, frequency}
+
+            const rawDataString = rawDataInput.value.trim();
+
+            if (rawDataString) {
+                // Process raw data
+                // Split by one or more whitespace characters (space, tab, newline)
+                const rawNumbers = rawDataString.split(/\s+/).filter(Boolean).map(num => parseFloat(num));
+
+                if (rawNumbers.length === 0 || rawNumbers.some(isNaN)) {
+                    showMessage('Data mentah tidak valid atau kosong. Harap masukkan angka yang dipisahkan spasi atau baris baru.');
+                    return;
+                }
+
+                // Sort raw numbers for easier processing
+                rawNumbers.sort((a, b) => a - b);
+
+                const n = rawNumbers.length;
+                const minVal = rawNumbers[0];
+                const maxVal = rawNumbers[rawNumbers.length - 1];
+                const range = maxVal - minVal;
+
+                // Sturges' Rule for number of classes (k)
+                const k = Math.ceil(1 + 3.3 * Math.log10(n));
+                // Class width (c)
+                // Ensure classWidth is at least 1, and handle cases where range is 0
+                const classWidth = range === 0 ? 1 : Math.ceil(range / k);
+
+
+                // Display raw data statistics
+                statN.textContent = n;
+                statMin.textContent = minVal;
+                statMax.textContent = maxVal;
+                statRange.textContent = range.toFixed(2);
+                statK.textContent = k;
+                statC.textContent = classWidth;
+                rawDataStats.classList.remove('hidden');
+
+                // Generate classes and frequencies from raw data
+                let currentLowerBound = minVal;
+                for (let i = 0; i < k; i++) {
+                    // Calculate upper bound for the current class
+                    // For integer data, upper bound is lowerBound + classWidth - 1
+                    // For continuous data, it might be lowerBound + classWidth (exclusive)
+                    // We'll use inclusive upper bound for display, and adjust for the last class
+                    let currentUpperBound = currentLowerBound + classWidth - 1;
+
+                    // Ensure the last class covers the maximum value
+                    if (i === k - 1) {
+                        currentUpperBound = maxVal;
+                    }
+
+                    let frequency = 0;
+                    // Count frequency for the current class
+                    for (const num of rawNumbers) {
+                        if (num >= currentLowerBound && num <= currentUpperBound) {
+                            frequency++;
+                        }
+                    }
+
+                    processedData.push({
+                        classStr: `${currentLowerBound}-${currentUpperBound}`,
+                        lowerBound: currentLowerBound,
+                        upperBound: currentUpperBound,
+                        frequency: frequency
+                    });
+
+                    // Set lower bound for the next class
+                    currentLowerBound = currentUpperBound + 1;
+                }
+
+            } else {
+                // Process manual input if no raw data is provided
+                const classInputs = document.querySelectorAll('.class-input');
+                const frequencyInputs = document.querySelectorAll('.frequency-input');
+
+                for (let i = 0; i < classInputs.length; i++) {
+                    const classStr = classInputs[i].value.trim();
+                    const freqStr = frequencyInputs[i].value.trim();
+
+                    if (!classStr || !freqStr) {
+                        showMessage('Pastikan semua kolom Kelas dan Frekuensi manual terisi, atau gunakan input Data Mentah.');
+                        return;
+                    }
+
+                    const frequency = parseInt(freqStr);
+                    if (isNaN(frequency) || frequency < 0) {
+                        showMessage('Frekuensi harus berupa angka positif.');
+                        return;
+                    }
+
+                    // Parse class string (e.g., "10-19")
+                    const parts = classStr.split('-');
+                    if (parts.length !== 2) {
+                        showMessage(`Format kelas tidak valid untuk baris ${i + 1}. Gunakan format "BatasBawah-BatasAtas" (contoh: 10-19).`);
+                        return;
+                    }
+                    const lowerBound = parseFloat(parts[0]);
+                    const upperBound = parseFloat(parts[1]);
+
+                    if (isNaN(lowerBound) || isNaN(upperBound)) {
+                        showMessage(`Batas kelas tidak valid untuk baris ${i + 1}. Pastikan berupa angka.`);
+                        return;
+                    }
+
+                    if (lowerBound > upperBound) {
+                        showMessage(`Batas bawah kelas tidak boleh lebih besar dari batas atas kelas pada baris ${i + 1}.`);
+                        return;
+                    }
+
+                    processedData.push({
+                        classStr: classStr,
+                        lowerBound: lowerBound,
+                        upperBound: upperBound,
+                        frequency: frequency
+                    });
+                }
+            }
+
+            if (processedData.length === 0) {
+                showMessage('Tidak ada data untuk dihitung. Harap masukkan data mentah atau tambahkan setidaknya satu baris data manual.');
+                return;
+            }
+
+            // Calculate all required values (common for both raw and manual input)
+            const calculatedResults = [];
+            let cumulativeFreqLessThan = 0;
+
+            // Calculate Fk <= (iterative)
+            for (let i = 0; i < processedData.length; i++) {
+                const row = processedData[i];
+
+                const nilaiTengah = (row.lowerBound + row.upperBound) / 2;
+                const tepiBawah = row.lowerBound - 0.5;
+                const tepiAtas = row.upperBound + 0.5;
+
+                cumulativeFreqLessThan += row.frequency;
+
+                calculatedResults.push({
+                    classStr: row.classStr,
+                    frequency: row.frequency,
+                    nilaiTengah: nilaiTengah,
+                    tepiBawah: tepiBawah,
+                    tepiAtas: tepiAtas,
+                    fkLessThan: cumulativeFreqLessThan,
+                    fkGreaterThan: 0 // Placeholder, will be calculated later
+                });
+            }
+
+            // Calculate Fk >= (iterative from bottom)
+            let cumulativeFreqGreaterThan = 0;
+            for (let i = calculatedResults.length - 1; i >= 0; i--) {
+                cumulativeFreqGreaterThan += calculatedResults[i].frequency;
+                calculatedResults[i].fkGreaterThan = cumulativeFreqGreaterThan;
+            }
+
+            // Display results in the table
+            calculatedResults.forEach(result => {
+                const row = resultsTableBody.insertRow();
+                row.classList.add('hover:bg-gray-50'); // Add hover effect
+
+                row.innerHTML = `
+                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${result.classStr}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${result.frequency}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${result.nilaiTengah.toFixed(2)}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${result.tepiBawah.toFixed(2)}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${result.tepiAtas.toFixed(2)}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${result.fkLessThan}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${result.fkGreaterThan}</td>
+                `;
+            });
+
+            resultsContainer.classList.remove('hidden'); // Show results container
+            showMessage('Perhitungan berhasil!', 'success'); // Show success message
+        });
+    </script>
+</body>
+</html>
